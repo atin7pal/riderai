@@ -1,0 +1,5 @@
+{
+  "name": "OkadaGuard: AI-Powered Rider Verification & Levy System",
+  "description": "A comprehensive digital platform for Okada rider registration, RFID/Face verification, levy enforcement, and real-time monitoring in Akoko North East LGA.",
+  "requestFramePermissions": ["camera", "geolocation", "microphone"]
+}

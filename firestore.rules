@@ -1,0 +1,127 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: riders
+// Fields: fullName, phoneNumber, address, nin, plateNumber, motorcycleDetails, photoUrl, rfidCardId, status, registrationFeePaid, createdAt, updatedAt
+//
+// Collection: officers
+// Fields: fullName, officerId, jurisdiction, authStatus, rfidBadgeId, role, email
+//
+// Collection: levies
+// Fields: riderId, date, amount, status, officerId, timestamp
+//
+// Collection: verifications
+// Fields: riderId, officerId, type, timestamp, location { latitude, longitude }, result
+//
+// Collection: panicAlerts
+// Fields: riderId, timestamp, location { latitude, longitude }, audioUrl, status
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/officers/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/officers/$(request.auth.uid)).data.role == 'admin') ||
+         (request.auth.token.email == "connect2sahilrana@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isOfficer() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/officers/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/officers/$(request.auth.uid)).data.role == 'officer') || isAdmin());
+    }
+
+    function isRegistrationStaff() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/officers/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/officers/$(request.auth.uid)).data.role == 'registration') || isAdmin());
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidRider(data) {
+      return data.fullName is string && data.fullName.size() > 0 && data.fullName.size() < 100 &&
+             data.phoneNumber is string && data.phoneNumber.size() < 20 &&
+             data.nin is string && data.nin.size() < 20 &&
+             data.plateNumber is string && data.plateNumber.size() < 20 &&
+             data.rfidCardId is string && data.rfidCardId.size() < 50;
+    }
+
+    function isValidLevy(data) {
+      return data.riderId is string &&
+             data.date is string &&
+             data.amount is number &&
+             data.status in ['paid', 'unpaid'];
+    }
+
+    function isValidPanicAlert(data) {
+      return data.riderId is string &&
+             data.riderName is string &&
+             data.status in ['active', 'resolved'] &&
+             data.location is map &&
+             data.location.latitude is number &&
+             data.location.longitude is number &&
+             (!('audioData' in data) || (data.audioData is string && data.audioData.size() < 2000000)); // ~2MB limit for base64
+    }
+
+    function isValidVerification(data) {
+      return data.riderId is string &&
+             data.officerId is string &&
+             data.type in ['RFID', 'Face', 'QR'] &&
+             data.result is string &&
+             data.location is map &&
+             data.location.latitude is number &&
+             data.location.longitude is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /riders/{riderId} {
+      allow read: if isAuthenticated();
+      allow create: if isRegistrationStaff() && isValidRider(request.resource.data);
+      allow update: if isAdmin() || (isRegistrationStaff() && isValidRider(request.resource.data));
+      allow delete: if isAdmin();
+    }
+
+    match /officers/{officerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /levies/{levyId} {
+      allow read: if isAuthenticated();
+      allow create: if isOfficer() && isValidLevy(request.resource.data);
+      allow update: if isAdmin();
+    }
+
+    match /verifications/{verificationId} {
+      allow read: if isOfficer() || isAdmin();
+      allow create: if isOfficer() && isValidVerification(request.resource.data);
+    }
+
+    match /panicAlerts/{alertId} {
+      allow read: if isAdmin() || isOfficer() || (isAuthenticated() && resource.data.riderId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidPanicAlert(request.resource.data);
+      allow update: if (isAdmin() || isOfficer()) && 
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+                    request.resource.data.status in ['active', 'resolved'];
+    }
+  }
+}

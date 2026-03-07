@@ -1,0 +1,127 @@
+{
+  "entities": {
+    "Rider": {
+      "title": "Rider",
+      "description": "A registered motorcycle rider profile.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "nin": { "type": "string" },
+        "plateNumber": { "type": "string" },
+        "motorcycleDetails": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "rfidCardId": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "suspended", "pending"] },
+        "registrationFeePaid": { "type": "boolean" },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": { "type": "string" },
+              "author": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            },
+            "required": ["text", "author", "timestamp"]
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "phoneNumber", "nin", "plateNumber", "rfidCardId"]
+    },
+    "Officer": {
+      "title": "Officer",
+      "description": "An enforcement or registration officer.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "officerId": { "type": "string" },
+        "jurisdiction": { "type": "string" },
+        "authStatus": { "type": "string", "enum": ["authorized", "revoked"] },
+        "rfidBadgeId": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "officer", "registration"] },
+        "email": { "type": "string" }
+      },
+      "required": ["fullName", "officerId", "role", "email"]
+    },
+    "Levy": {
+      "title": "Levy",
+      "description": "Daily levy payment record.",
+      "type": "object",
+      "properties": {
+        "riderId": { "type": "string" },
+        "date": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["paid", "unpaid"] },
+        "officerId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["riderId", "date", "amount", "status"]
+    },
+    "Verification": {
+      "title": "Verification",
+      "description": "Record of a rider verification check.",
+      "type": "object",
+      "properties": {
+        "riderId": { "type": "string" },
+        "officerId": { "type": "string" },
+        "type": { "type": "string", "enum": ["RFID", "Face", "QR"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          }
+        },
+        "result": { "type": "string" }
+      },
+      "required": ["riderId", "officerId", "type", "timestamp"]
+    },
+    "PanicAlert": {
+      "title": "PanicAlert",
+      "description": "Emergency alert triggered by a rider.",
+      "type": "object",
+      "properties": {
+        "riderId": { "type": "string" },
+        "riderName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          }
+        },
+        "audioData": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "resolved"] }
+      },
+      "required": ["riderId", "timestamp", "location"]
+    }
+  },
+  "firestore": {
+    "/riders/{riderId}": {
+      "schema": "Rider",
+      "description": "Collection of registered riders."
+    },
+    "/officers/{officerId}": {
+      "schema": "Officer",
+      "description": "Collection of authorized officers."
+    },
+    "/levies/{levyId}": {
+      "schema": "Levy",
+      "description": "Daily levy payments."
+    },
+    "/verifications/{verificationId}": {
+      "schema": "Verification",
+      "description": "Logs of all verification activities."
+    },
+    "/panicAlerts/{alertId}": {
+      "schema": "PanicAlert",
+      "description": "Real-time emergency alerts."
+    }
+  }
+}

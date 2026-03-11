@@ -133,7 +133,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <footer className="bg-white border-t border-zinc-200 py-8">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <p className="text-sm text-zinc-500">
-            &copy; 2026 Akoko North East Local Government Area. OkadaGuard System.
+            &copy; 2026 Akoko North East Local Government Area. Developed by Sidigiqor.
           </p>
         </div>
       </footer>
